@@ -95,7 +95,7 @@ int main()
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
-    checkCompile(fragmentShader);
+    checkCompile(vertexShader);
 
     GLuint shaderProgram;
     shaderProgram = glCreateProgram();
