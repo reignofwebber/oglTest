@@ -9,14 +9,32 @@
 #include "shader.h"
 #include "image_loader.h"
 
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode)
+static float mixValue = 0.0f;
+
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
-    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(window, GL_TRUE);
-    }
+    glViewport(0, 0, width, height);
 }
 
+void processInput(GLFWwindow *window)
+{
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        mixValue += 0.001f;
+        if(mixValue >= 1.0f)
+            mixValue = 1.0f;
+    }
+    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        mixValue -= 0.001f;
+        if(mixValue <= 0.0f)
+            mixValue = 0.0f;
+    }
+}
 
 int main()
 {
@@ -26,7 +44,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+
     // create window
     GLFWwindow *window = glfwCreateWindow(800, 600, "Learn OGL", 0, 0);
     if(window == 0)
@@ -37,6 +55,7 @@ int main()
     }
     // make this window context current ?
     glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     
     // use advance features
     glewExperimental = GL_TRUE;
@@ -49,43 +68,23 @@ int main()
 
     // set view port
     glViewport(0, 0, 800, 600);
-    // set key callback
-    glfwSetKeyCallback(window, key_callback);
+    // set key callback(deprecated)
+    //glfwSetKeyCallback(window, key_callback);
 
     // opengl start ........................................................
 
-    // // load image
-    // unsigned int texture;
-    // glGenTextures(1, &texture);
-    // glBindTexture(GL_TEXTURE_2D, texture);
-
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // int width, height, nrChannels;
-    // unsigned char *data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
-    // if(!data)
-    // {
-    //     std::cout << "Failed to load texture" << std::endl;
-    // }
-
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    // glGenerateMipmap(GL_TEXTURE_2D);
-
-    // stbi_image_free(data);
+    // load image
 
     unsigned int  texture1, texture2;
     ImgLoader loader;
+
+    loader.setWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+    loader.setFilter(GL_LINEAR, GL_LINEAR);
+    // float color[] = {1.0f, 1.0f, 0.0f, 1.0f};
+    // loader.setBorderColor(color);
     
     loader.load("container.jpg", texture1);
     loader.load("awesomeface.png", texture2, GL_RGBA);
-    
-
-    // unsigned int texture;
-    // ImgLoader loader;
-    // loader.load("awesomeface.png", texture, GL_RGBA);
 
     GLfloat vertices[] = {
         // positions        // colors         // texture coords
@@ -129,6 +128,7 @@ int main()
 
     while(!glfwWindowShouldClose(window))
     {
+        processInput(window);
         glfwPollEvents();
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -143,6 +143,7 @@ int main()
 
         // use shader
         shader.use();
+        shader.setFloat("mixValue", mixValue);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glBindVertexArray(0);
@@ -150,7 +151,9 @@ int main()
         glfwSwapBuffers(window);
     }
 
-    
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
 
     return 0;
 }
